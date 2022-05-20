@@ -24,21 +24,19 @@ def getInfo(id, bot, chat_id):
 		bot.send_message(chat_id, notification)
 
 # Program startup
-TOKEN = 'YOUR_TOKEN_HERE''
+TOKEN = 'YOUR_TOKEN_HERE'
 bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
 	bot.reply_to(message, "Hey, you may check by yourself!\nhttps://api.wog.ua/fuel_stations/1044\nhttps://api.wog.ua/fuel_stations/1072\nStarting to poll")
-	chat_id = message.chat.id
-	thread = threading.Thread(name='run', target=run(chat_id))
+	thread = threading.Thread(name='run', target=run(message.chat.id))
 	thread.start()
-
+	
 def run(chat_id):
 	ping_time = 0
 
 	while (True):
 		try:
-			pprint("Working with client: " + chat_id)
 			getInfo("1044", bot, chat_id)
 			getInfo("1072", bot, chat_id)
 		except:
