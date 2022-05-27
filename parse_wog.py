@@ -114,7 +114,6 @@ def run(chat_id):
 
                 if fuel_station_id not in stations:
                     bot.send_message(chat_id, message)
-                    new_stations.append(fuel_station_id)
 
             if set(new_stations) != set(stations):
                 write_bot_data(new_stations)
