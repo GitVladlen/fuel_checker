@@ -21,10 +21,29 @@ with open("config.json") as f:
     TOKEN = data["TOKEN"]
     FUEL_STATIONS = data["FUEL_STATIONS"]
 
+
 bot = telebot.TeleBot(TOKEN)
 
 
-def getInfo(id, bot, chat_id):
+def write_bot_data(stations=[]):
+    data = {
+        "Stations": stations
+    }
+
+    with open('bot_data.json', 'w') as outfile:
+        json.dump(data, outfile)
+
+
+def read_bot_data():
+    with open("bot_data.json") as f:
+        data = json.load(f)
+    return data
+
+
+write_bot_data()
+
+
+def getInfo(id):
     url = FUEL_STATION_BASE_URL + id
     headers = {'User-Agent': 'Generic user agent'}
     page = requests.get(url, headers=headers)
@@ -32,8 +51,8 @@ def getInfo(id, bot, chat_id):
     page_info = json.loads(soup.text)
     
     position = "https://maps.google.com/?q={lat},{lng}".format(
-        lat = page_info["data"]["coordinates"]["latitude"],
-        lng = page_info["data"]["coordinates"]["longitude"]
+        lat=page_info["data"]["coordinates"]["latitude"],
+        lng=page_info["data"]["coordinates"]["longitude"]
     )
     
     notification = page_info["data"]["city"] + "\n" \
@@ -51,8 +70,7 @@ def getInfo(id, bot, chat_id):
     
     for look_string in strings_in:
         if look_string in work_desc:
-            bot.send_message(chat_id, notification)
-            return
+            return notification
     
     strings_out = [
         "М95 - Пальне відсутнє",
@@ -61,8 +79,7 @@ def getInfo(id, bot, chat_id):
     
     for look_string in strings_out:
         if look_string not in work_desc:
-            bot.send_message(chat_id, notification)
-            return
+            return notification
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -84,8 +101,24 @@ def run(chat_id):
 
     while True:
         try:
+            bot_data = read_bot_data()
+            stations = bot_data["Stations"]
+
+            new_stations = []
             for fuel_station_id in FUEL_STATIONS:
-                getInfo(fuel_station_id, bot, chat_id)
+                message = getInfo(fuel_station_id)
+                if not message:
+                    continue
+
+                new_stations.append(fuel_station_id)
+
+                if fuel_station_id not in stations:
+                    bot.send_message(chat_id, message)
+                    new_stations.append(fuel_station_id)
+
+            if set(new_stations) != set(stations):
+                write_bot_data(new_stations)
+
         except Exception as e:
             pprint(e)
             pass
