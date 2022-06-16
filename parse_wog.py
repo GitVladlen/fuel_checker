@@ -25,11 +25,7 @@ with open("config.json") as f:
 bot = telebot.TeleBot(TOKEN)
 
 
-def write_bot_data(stations=[]):
-    data = {
-        "Stations": stations
-    }
-
+def write_bot_data(data={}):
     with open('bot_data.json', 'w') as outfile:
         json.dump(data, outfile)
 
@@ -82,6 +78,23 @@ def getInfo(id):
             return notification
 
 
+@bot.message_handler(commands=['stations'])
+def stations_handler(message):
+    pprint(message.text)
+    nodes_str = message.text[message.text.find('/stations')+len('/stations'):]
+    print(nodes_str)
+    nodes = nodes_str.split(',')
+    ids = [node.strip(", ") for node in nodes]
+    pprint(ids)
+    pprint(message.chat.id)
+    bot_data = read_bot_data()
+    bot_data[message.chat.id] = {
+        "CheckStations": ids,
+        "ActiveStations": []
+    }
+    write_bot_data(bot_data)
+
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     answer = "Hey, you may check by yourself!\n"
@@ -101,8 +114,16 @@ def run(chat_id):
 
     while True:
         try:
+            pprint("!!! Info for chat id'{}:'".format(chat_id))
             bot_data = read_bot_data()
-            stations = bot_data["Stations"]
+            chat_id_in_data = str(chat_id)
+            if str(chat_id_in_data) not in bot_data:
+                bot_data[chat_id_in_data] = {
+                    "Stations": []
+                }
+                stations = []
+            else:
+                stations = bot_data[chat_id_in_data]["Stations"]
 
             new_stations = []
             for fuel_station_id in FUEL_STATIONS:
@@ -116,7 +137,10 @@ def run(chat_id):
                     bot.send_message(chat_id, message)
 
             if set(new_stations) != set(stations):
-                write_bot_data(new_stations)
+                bot_data[chat_id_in_data] = {
+                    "Stations": new_stations
+                }
+                write_bot_data(bot_data)
 
         except Exception as e:
             pprint(e)
